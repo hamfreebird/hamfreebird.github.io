@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <title>关于 · freebird的自留地</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div id="shell-header"></div>
+  <main>
+    <section class="wrap section">
+      <div class="eyebrow reveal">About this place</div>
+      <h1 class="section-title reveal" style="font-size:clamp(36px,6vw,58px);margin:14px 0 46px">关于这块自留地</h1>
+      <div class="about-grid">
+        <div class="about-card reveal">
+          <h2>fly free · write true</h2>
+          <p>这里是 freebird 的自留地。名字里的「自由」不是口号，而是一种工作方式：想法来了就写，写完就发布，不把表达困在草稿箱里。</p>
+          <p>「鸟」提醒我保持轻盈——轻装、轻信、轻快地穿过信息噪声。站点用 GitHub Pages 托管静态页面，用一个独立的 Node 服务承载文章、留言与后台管理。</p>
+          <p>如果这里有哪句话让你想起自己的天空，欢迎写信给我。</p>
+          <div class="divider"></div>
+          <div class="stat-grid" id="statGrid">
+            <div class="stat"><strong data-stat="posts">—</strong><small>文章</small></div>
+            <div class="stat"><strong data-stat="views">—</strong><small>阅读</small></div>
+            <div class="stat"><strong data-stat="comments">—</strong><small>留言</small></div>
+            <div class="stat"><strong data-stat="subscribers">—</strong><small>订阅者</small></div>
+          </div>
+        </div>
+        <div class="reveal">
+          <div class="about-card">
+            <h2 style="font-size:22px;margin-bottom:20px">联络与链接</h2>
+            <div class="contact-list">
+              <a class="contact-item" href="mailto:freebirdflyinthesky@outlook.com">
+                <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+                <span><small>个人邮箱</small><span>freebirdflyinthesky@outlook.com</span></span>
+              </a>
+              <a class="contact-item" href="https://github.com/hamfreebird/hamfreebird.github.io" target="_blank" rel="noopener">
+                <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg></span>
+                <span><small>个人仓库 · GitHub</small><span>hamfreebird/hamfreebird.github.io ↗</span></span>
+              </a>
+              <a class="contact-item" href="https://hamfreebird.github.io" target="_blank" rel="noopener">
+                <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.6 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.6-3.8-9S9.5 5.5 12 3z"/></svg></span>
+                <span><small>线上站点</small><span>hamfreebird.github.io ↗</span></span>
+              </a>
+              <a class="contact-item" href="rss.xml">
+                <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5" fill="currentColor"/></svg></span>
+                <span><small>订阅</small><span>RSS 输出 ↗</span></span>
+              </a>
+            </div>
+          </div>
+          <div class="about-card" style="margin-top:18px">
+            <h2 style="font-size:20px;margin-bottom:14px">技术栈</h2>
+            <p style="font-size:14px">静态前端：原生 HTML / CSS / JavaScript，零构建，直接由 GitHub Pages 托管。<br>
+            后端：Node.js 内置 HTTP 与 SQLite，零第三方依赖，提供文章、评论、统计与后台 API。<br>
+            动效：飞鸟、羽毛轨迹、极光与风流、视差与页面转场，并且尊重系统的「减少动态效果」设置。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="shell-footer"></div>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/about.js"></script>
+</body>
+</html>

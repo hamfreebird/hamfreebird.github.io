@@ -1,0 +1,12 @@
+# 运行时数据与密钥
+data/*.db
+data/*.db-*
+data/secret.key
+*.log
+
+# 依赖与系统文件
+node_modules/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

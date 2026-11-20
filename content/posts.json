@@ -1,0 +1,12 @@
+{
+  "site": {
+    "name": "freebird的自留地",
+    "tagline": "fly free · write true",
+    "description": "一个关于自由、代码与生活的自留地。偶尔飞行，常常记录。",
+    "author": "freebird",
+    "email": "freebirdflyinthesky@outlook.com",
+    "repo": "https://github.com/hamfreebird/hamfreebird.github.io",
+    "pages": "https://hamfreebird.github.io"
+  },
+  "posts": []
+}
