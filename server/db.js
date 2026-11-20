@@ -9,10 +9,17 @@ export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'da
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const secretPath = path.join(DATA_DIR, 'secret.key');
-if (!fs.existsSync(secretPath)) {
-  fs.writeFileSync(secretPath, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
-}
-export const SECRET = fs.readFileSync(secretPath, 'utf8').trim();
+// 线上可能由多个实例分担请求：文件密钥只在单实例内稳定，跨实例会失效。
+// 因此优先用部署环境变量派生固定密钥；本地无环境变量时仍使用文件密钥。
+const tokenSeed = process.env.TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+export const SECRET = tokenSeed
+  ? crypto.createHash('sha256').update(`freebird-token|${tokenSeed}`).digest('hex')
+  : (() => {
+    if (!fs.existsSync(secretPath)) {
+      fs.writeFileSync(secretPath, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
+    }
+    return fs.readFileSync(secretPath, 'utf8').trim();
+  })();
 
 export const db = new DatabaseSync(path.join(DATA_DIR, 'blog.db'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');

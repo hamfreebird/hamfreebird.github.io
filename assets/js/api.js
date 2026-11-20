@@ -17,6 +17,9 @@ async function request(path, options = {}) {
     }
     const target = new URL(BASE + path, location.href);
     if (SHARECODE) target.searchParams.set('sharecode', SHARECODE);
+    // 发布平台的反向代理可能剥离 Authorization 头，因此同时在查询参数中携带令牌。
+    const adminToken = sessionStorage.getItem('freebird_admin_token');
+    if (adminToken) target.searchParams.set('access_token', adminToken);
     const res = await fetch(target.toString(), { ...options, headers, signal: controller.signal });
     const text = await res.text();
     let data;

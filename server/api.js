@@ -38,9 +38,10 @@ function readBody(req) {
   });
 }
 
-function authUser(req) {
+function authUser(req, url) {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const fromHeader = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const token = fromHeader || (url?.searchParams.get('access_token') || '');
   const data = verifyToken(token);
   if (!data) return null;
   const admin = db.prepare('SELECT id, username FROM admins WHERE username = ?').get(data.sub);
@@ -257,11 +258,11 @@ export async function handleApi(req, res, url) {
       }), true;
     }
 
-    const isAdmin = Boolean(authUser(req));
+    const isAdmin = Boolean(authUser(req, url));
 
     if (pathname === '/api/auth/me' && req.method === 'GET') {
       if (!isAdmin) return fail(res, 401, '请先登录'), true;
-      return json(res, 200, { ok: true, user: authUser(req) }), true;
+      return json(res, 200, { ok: true, user: authUser(req, url) }), true;
     }
 
     if (pathname === '/api/posts' && req.method === 'GET') {
@@ -385,7 +386,7 @@ export async function handleApi(req, res, url) {
       const body = await readBody(req);
       const next = str(body.password, '', 200);
       if (next.length < 8) return fail(res, 400, '新密码至少 8 位'), true;
-      const me = authUser(req);
+      const me = authUser(req, url);
       setAdminPassword(me.username, next);
       return json(res, 200, { ok: true, message: '密码已更新，请重新登录' }), true;
     }
