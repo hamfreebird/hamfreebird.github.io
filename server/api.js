@@ -248,7 +248,7 @@ export async function handleApi(req, res, url) {
 
   try {
     if (pathname === '/api/health' && req.method === 'GET') {
-      return json(res, 200, { ok: true, service: 'freebird-blog-api', time: now(), version: '2026-11-20-token-body' }), true);
+      return json(res, 200, { ok: true, service: 'freebird-blog-api', time: now(), version: '2026-11-20-token-body' }), true;
     }
 
     if (pathname === '/api/auth/login' && req.method === 'POST') {
