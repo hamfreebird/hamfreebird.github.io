@@ -251,6 +251,18 @@ export async function handleApi(req, res, url) {
       return json(res, 200, { ok: true, service: 'freebird-blog-api', time: now(), version: '2026-11-20-token-body' }), true;
     }
 
+    if (pathname === '/api/auth/diagnose' && req.method === 'POST') {
+      const body = await readBody(req);
+      const token = body.access_token || '';
+      return json(res, 200, {
+        bodyKeys: Object.keys(body),
+        tokenLength: token.length,
+        tokenVerified: Boolean(verifyToken(token)),
+        headerLength: (req.headers.authorization || '').length,
+        queryLength: (url.searchParams.get('access_token') || '').length
+      }), true;
+    }
+
     if (pathname === '/api/auth/login' && req.method === 'POST') {
       if (rateLimited(`login:${clientIp(req)}`, 10, 15 * 60 * 1000)) return fail(res, 429, '尝试次数过多，请稍后再试'), true;
       const body = await readBody(req);
