@@ -11,14 +11,15 @@ async function request(path, options = {}) {
   const timer = setTimeout(() => controller.abort(), 9000);
   try {
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
+    const adminToken = sessionStorage.getItem('freebird_admin_token');
     if (options.body && typeof options.body !== 'string') {
+      if (adminToken) options.body = { ...options.body, access_token: adminToken };
       headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(options.body);
     }
     const target = new URL(BASE + path, location.href);
     if (SHARECODE) target.searchParams.set('sharecode', SHARECODE);
     // 发布平台的反向代理可能剥离 Authorization 头，因此同时在查询参数中携带令牌。
-    const adminToken = sessionStorage.getItem('freebird_admin_token');
     if (adminToken) target.searchParams.set('access_token', adminToken);
     const res = await fetch(target.toString(), { ...options, headers, signal: controller.signal });
     const text = await res.text();
@@ -118,7 +119,13 @@ export const api = {
     return request('/api/auth/login', { method: 'POST', body: { username, password } });
   },
   async me(token) {
-    return request('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+    // /api/auth/me 在部分发布网关下会被拦截；/api/settings 需要同等管理员权限且已验证可用。
+    try {
+      const result = await request('/api/settings', { headers: { Authorization: `Bearer ${token}` } });
+      return { ok: true, user: { username: 'freebird' }, settings: result.settings };
+    } catch (error) {
+      throw error;
+    }
   },
   async createPost(data, token) {
     return request('/api/posts', { method: 'POST', body: data, headers: { Authorization: `Bearer ${token}` } });

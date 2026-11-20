@@ -18,6 +18,7 @@ const json = (res, status, payload, extra = {}) => {
 const fail = (res, status, message) => json(res, status, { ok: false, error: message });
 
 function readBody(req) {
+  if (req._parsedBody) return Promise.resolve(req._parsedBody);
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', (chunk) => {
@@ -29,7 +30,9 @@ function readBody(req) {
     });
     req.on('end', () => {
       try {
-        resolve(raw ? JSON.parse(raw) : {});
+        const parsed = raw ? JSON.parse(raw) : {};
+        req._parsedBody = parsed;
+        resolve(parsed);
       } catch {
         reject(Object.assign(new Error('JSON 格式不正确'), { status: 400 }));
       }
@@ -41,7 +44,9 @@ function readBody(req) {
 function authUser(req, url) {
   const header = req.headers.authorization || '';
   const fromHeader = header.startsWith('Bearer ') ? header.slice(7) : '';
-  const token = fromHeader || (url?.searchParams.get('access_token') || '');
+  const fromQuery = url?.searchParams.get('access_token') || '';
+  const fromBody = req._parsedBody?.access_token || '';
+  const token = fromHeader || fromQuery || fromBody;
   const data = verifyToken(token);
   if (!data) return null;
   const admin = db.prepare('SELECT id, username FROM admins WHERE username = ?').get(data.sub);
@@ -256,6 +261,10 @@ export async function handleApi(req, res, url) {
       return json(res, 200, {
         ok: true, token: signToken(row.username), user: { id: row.id, username: row.username }
       }), true;
+    }
+
+    if (['POST', 'PUT', 'PATCH'].includes(req.method) && pathname !== '/api/auth/login') {
+      try { await readBody(req); } catch { /* 后续路由会返回具体错误 */ }
     }
 
     const isAdmin = Boolean(authUser(req, url));
