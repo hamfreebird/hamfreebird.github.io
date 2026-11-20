@@ -63,7 +63,8 @@ ADMIN_PASSWORD='your-strong-password' npm start
 GitHub Pages 只能托管静态文件，动态能力由独立 Node 服务提供。当前已发布后端服务，前端 `assets/js/config.js` 已配置其地址与访问码：
 
 - 线上站点访问后端时会自动带上访问码；本地 `localhost` 开发则走同源后端，不依赖线上服务。
-- 后端已允许来自 `https://hamfreebird.github.io` 的跨域请求（CORS_ORIGIN）。
+- 后端已允许来自 `https://hamfreebird.github.io` 与发布服务自身域名的跨域请求（CORS_ORIGIN）。若更换发布域名，需同步更新部署时的 `CORS_ORIGIN`。
+- 部分发布平台的网关会注入额外的 `Authorization` 头并影响写请求：后端因此优先读取请求体中的 `access_token`，前端会在所有请求中同时携带该字段；本地部署不受影响。
 - 管理员账号 `freebird`，密码由部署环境的 `ADMIN_PASSWORD` 提供，不写入本仓库。本地开发同样可用 `ADMIN_PASSWORD=... npm start` 指定。
 - 连接成功后，首页数据源标识显示「实时数据 · 后端已连接」，文章、留言与后台管理全部可用；若后端不可达，站点自动回退到静态快照并显示明确提示。
 - 如需更换后端地址或访问码，只修改 `assets/js/config.js` 的 `API_BASE` 与 `API_SHARECODE` 后重新发布静态页面即可。
