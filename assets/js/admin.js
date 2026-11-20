@@ -40,21 +40,21 @@ function renderLogin(note = '') {
 }
 
 function dashboardHtml() {
-  return `<div class="admin-head reveal">
+  return `<div class="admin-head">
     <div><div class="eyebrow">Control tower</div><h1>管理后台</h1></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a class="btn btn-ghost" href="index.html">查看站点</a>
       <button class="btn btn-ghost" id="logoutBtn">退出登录</button>
     </div>
   </div>
-  <div class="admin-stats reveal" id="adminStats">
+  <div class="admin-stats" id="adminStats">
     <div class="stat"><strong data-admin="posts">—</strong><small>全部文章</small></div>
     <div class="stat"><strong data-admin="published">—</strong><small>已发布</small></div>
     <div class="stat"><strong data-admin="pendingComments">—</strong><small>待审留言</small></div>
     <div class="stat"><strong data-admin="views">—</strong><small>累计阅读</small></div>
   </div>
 
-  <section class="admin-panel reveal">
+  <section class="admin-panel">
     <div class="draft-notice" id="draftNotice" hidden>
       <span id="draftTime"></span>
       <button type="button" class="mini-btn" id="restoreDraft">恢复草稿</button>
@@ -122,7 +122,7 @@ function dashboardHtml() {
     </form>
   </section>
 
-  <section class="admin-panel reveal">
+  <section class="admin-panel">
     <h2>文章管理</h2>
     <div class="admin-toolbar">
       <input class="input" id="postSearch" placeholder="搜索标题、摘要或正文…">
@@ -136,7 +136,7 @@ function dashboardHtml() {
     <div class="admin-pager" id="postPager"></div>
   </section>
 
-  <section class="admin-panel reveal">
+  <section class="admin-panel">
     <h2>留言审核</h2>
     <div class="admin-toolbar">
       <select class="select" id="commentPost"></select>
@@ -152,7 +152,7 @@ function dashboardHtml() {
     <div id="commentList" class="comment-list"></div>
   </section>
 
-  <section class="admin-panel reveal"><h2>站点设置</h2>
+  <section class="admin-panel"><h2>站点设置</h2>
     <form class="editor" id="settingsForm">
       <div class="row"><label>站点名称<input class="input" name="name"></label><label>标语<input class="input" name="tagline"></label></div>
       <label>描述<input class="input" name="description"></label>
@@ -161,7 +161,7 @@ function dashboardHtml() {
     </form>
   </section>
 
-  <section class="admin-panel reveal"><h2>安全与数据</h2>
+  <section class="admin-panel"><h2>安全与数据</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px">
       <form class="editor" id="passwordForm">
         <label>修改管理员密码（至少 8 位）<input class="input" name="password" type="password" minlength="8" required></label>
