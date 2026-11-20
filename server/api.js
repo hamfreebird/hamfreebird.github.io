@@ -46,7 +46,8 @@ function authUser(req, url) {
   const fromHeader = header.startsWith('Bearer ') ? header.slice(7) : '';
   const fromQuery = url?.searchParams.get('access_token') || '';
   const fromBody = req._parsedBody?.access_token || '';
-  const token = fromHeader || fromQuery || fromBody;
+  // 发布网关可能注入额外的 Authorization 头，优先使用请求体/查询参数中明确携带的令牌。
+  const token = fromBody || fromQuery || fromHeader;
   const data = verifyToken(token);
   if (!data) return null;
   const admin = db.prepare('SELECT id, username FROM admins WHERE username = ?').get(data.sub);
