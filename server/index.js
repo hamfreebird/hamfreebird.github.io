@@ -32,8 +32,12 @@ if (invokedDirectly) {
   const port = Number(process.env.PORT) || 8787;
   const host = process.env.HOST || '0.0.0.0';
   const server = createApp();
+  server.on('error', (error) => {
+    console.error('[server] 启动失败：', error.message);
+    process.exit(1);
+  });
   server.listen(port, host, () => {
-    console.log(`\n  freebird 后端已就绪  →  http://localhost:${port}`);
+    console.log(`\n  freebird 后端已就绪  →  http://${host}:${port}`);
     console.log(`  管理后台            →  http://localhost:${port}/admin.html`);
     console.log(`  API 健康检查         →  http://localhost:${port}/api/health\n`);
   });
