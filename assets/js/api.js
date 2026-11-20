@@ -150,6 +150,11 @@ export const api = {
   async backup(token) {
     return request('/api/backup', { headers: { Authorization: `Bearer ${token}` } });
   },
+  async importBackup(data, token) {
+    return request('/api/backup/import', {
+      method: 'POST', body: { backup: data }, headers: { Authorization: `Bearer ${token}` }
+    });
+  },
   async updateSettings(data, token) {
     return request('/api/settings', { method: 'PUT', body: data, headers: { Authorization: `Bearer ${token}` } });
   }

@@ -290,6 +290,28 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
 .login-card p { color: var(--muted); font-size: 13px; margin: 0 0 26px; }
 .login-card .editor { text-align: left; }
 
+/* ---------- 后台编辑器与工具栏 ---------- */
+.editor-block { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: rgba(4, 10, 18, 0.45); }
+.editor-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.editor-modes, .editor-toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.editor-modes .mini-btn.active { color: var(--sky); border-color: var(--border-strong); background: rgba(125, 211, 252, 0.1); }
+.editor-toolbar .mini-btn { min-width: 30px; height: 28px; padding: 0 9px; font-size: 12px; }
+.editor-surface { position: relative; }
+.editor-visual, .editor-source, .editor-preview { min-height: 280px; padding: 20px 22px; outline: 0; }
+.editor-visual:empty::before { content: attr(data-placeholder); color: var(--dim); }
+.editor-source { width: 100%; border: 0; resize: vertical; background: transparent; color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.8; }
+.editor-preview { min-height: 280px; }
+.editor-status { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--dim); }
+.editor-status b { color: var(--text); font-weight: 500; }
+.draft-notice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 16px; border: 1px solid rgba(244, 201, 135, 0.3); border-radius: 12px; background: rgba(244, 201, 135, 0.07); font-size: 12px; color: var(--gold); }
+.admin-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.admin-toolbar .input { max-width: 260px; }
+.admin-toolbar .select { max-width: 170px; }
+.admin-pager { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 18px; font-size: 12px; color: var(--dim); }
+.admin-table td .mini-btn + .mini-btn { margin-left: 6px; }
+.check { accent-color: var(--teal); }
+.import-note { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+
 /* ---------- 页脚 ---------- */
 .site-footer { border-top: 1px solid var(--border); margin-top: 60px; background: rgba(6, 10, 17, 0.7); }
 .footer-inner { max-width: var(--max); margin: auto; padding: 48px 24px 30px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 36px; }

@@ -114,6 +114,25 @@ await check('RSS、删除与静态入口', async () => {
   const home = await fetch(base + '/');
   assert((await home.text()).includes('freebird'), '首页输出异常');
 });
+await check('备份导出与恢复', async () => {
+  const headers = { Authorization: `Bearer ${token}` };
+  const created = await json('/api/posts', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: '备份测试文章', slug: 'backup-test', content: '<p>backup</p>', status: 'published' })
+  });
+  assert(created.status === 201, '备份前置文章创建失败');
+  const backup = await json('/api/backup', { headers });
+  assert(backup.body.posts.length >= 1, '备份数据为空');
+  const unauthImport = await json('/api/backup/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  assert(unauthImport.status === 401, '未授权导入未被拒绝');
+  const restored = await json('/api/backup/import', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ backup: backup.body })
+  });
+  assert(restored.status === 200, `恢复失败：${restored.status}`);
+  const list = await json('/api/posts');
+  assert(list.body.items.some((p) => p.slug === 'backup-test'), '恢复后文章缺失');
+});
 
 await new Promise((resolve) => server.close(resolve));
 closeDb();

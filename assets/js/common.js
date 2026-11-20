@@ -251,7 +251,7 @@ function initMisc() {
     }, { passive: true });
   }
 
-  if (document.querySelector('.article-body')) {
+  if (document.querySelector('.article-body:not(.preview-body)')) {
     const bar = document.createElement('div');
     bar.className = 'progress';
     bar.innerHTML = birdIcon('bird-small');
