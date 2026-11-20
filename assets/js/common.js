@@ -18,8 +18,10 @@ export const birdIcon = (cls = '') => `
 
 export const starIcon = (cls = '') => `
 <svg class="star-icon ${cls}" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-  <path d="M16 4.5C16.25 11.5 20.5 15.75 27.5 16 20.5 16.25 16.25 20.5 16 27.5 15.75 20.5 11.5 16.25 4.5 16 11.5 15.75 15.75 11.5 16 4.5Z" fill="currentColor"/>
-  <circle cx="16" cy="16" r="1.7" fill="#ecfbff"/>
+  <path d="M16 3V29M3 16H29" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M8 8L24 24M24 8L8 24" stroke="currentColor" stroke-width=".55" opacity=".55"/>
+  <circle cx="16" cy="16" r="2.1" fill="currentColor"/>
+  <circle cx="16" cy="16" r=".9" fill="#ffffff"/>
 </svg>`;
 
 export const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (c) => ({
