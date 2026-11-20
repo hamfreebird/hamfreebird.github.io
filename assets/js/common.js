@@ -4,6 +4,9 @@ const CFG = window.FREEBIRD_CONFIG || {};
 export const EMAIL = CFG.EMAIL || 'freebirdflyinthesky@outlook.com';
 export const REPO = CFG.REPO || 'https://github.com/hamfreebird/hamfreebird.github.io';
 export const SITE = CFG.SITE_NAME || 'freebird的自留地';
+const RSS_URL = CFG.API_BASE
+  ? `${CFG.API_BASE}/rss.xml${CFG.API_SHARECODE ? `?sharecode=${encodeURIComponent(CFG.API_SHARECODE)}` : ''}`
+  : 'rss.xml';
 
 export const birdIcon = (cls = '') => `
 <svg class="bird ${cls}" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -11,6 +14,12 @@ export const birdIcon = (cls = '') => `
   <g class="wing right"><path d="M16.6 17.6c3.9-8.3 9.8-10.7 12.7-9.2-3.4.6-5.9 3.7-7.3 7.6-.7 2-2.4 3.2-5.4 3.4z" fill="currentColor" opacity=".68"/></g>
   <path d="M13.8 17.2c1-3.1 3.2-4.1 4.5-1.5 1.3 2.6-.2 7.2-3.3 7.2-2.4 0-3.4-2.1-1.2-5.7z" fill="currentColor"/>
   <circle cx="17.2" cy="14.8" r=".8" fill="#07111c"/>
+</svg>`;
+
+export const starIcon = (cls = '') => `
+<svg class="star-icon ${cls}" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+  <path d="M16 4.5C16.25 11.5 20.5 15.75 27.5 16 20.5 16.25 16.25 20.5 16 27.5 15.75 20.5 11.5 16.25 4.5 16 11.5 15.75 15.75 11.5 16 4.5Z" fill="currentColor"/>
+  <circle cx="16" cy="16" r="1.7" fill="#ecfbff"/>
 </svg>`;
 
 export const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (c) => ({
@@ -67,7 +76,7 @@ function buildHeader(active) {
     ['about', 'about.html', '关于']
   ];
   return `<header class="site-header" id="siteHeader"><div class="header-inner">
-    <a class="brand" href="index.html" aria-label="${SITE}">${birdIcon()}<span class="brand-name">freebird<span class="brand-suffix">的自留地</span></span></a>
+    <a class="brand" href="index.html" aria-label="${SITE}">${starIcon()}<span class="brand-name">freebird<span class="brand-suffix">的自留地</span></span></a>
     <nav class="nav" aria-label="主导航">${links.map(([key, href, label]) =>
       `<a href="${href}" data-nav="${key}" class="${active === key ? 'active' : ''}">${label}</a>`).join('')}</nav>
     <div class="header-actions">
@@ -89,7 +98,7 @@ function buildHeader(active) {
 function buildFooter() {
   return `<footer class="site-footer"><div class="footer-inner">
     <div class="footer-brand">
-      <a class="brand" href="index.html">${birdIcon()}<span class="brand-name">freebird<span class="brand-suffix">的自留地</span></span></a>
+      <a class="brand" href="index.html">${starIcon()}<span class="brand-name">freebird<span class="brand-suffix">的自留地</span></span></a>
       <p>fly free · write true<br>一块留给风、文字与自由的空地。</p>
     </div>
     <div class="footer-col"><h4>联络</h4>
@@ -100,7 +109,7 @@ function buildFooter() {
     <div class="footer-col"><h4>导航</h4>
       <a href="index.html">首页</a><a href="archive.html">归档</a>
       <a href="about.html">关于</a><a href="admin.html">管理后台</a>
-      <a href="rss.xml" id="rssLink">RSS 订阅</a>
+      <a href="${RSS_URL}" id="rssLink">RSS 订阅</a>
     </div>
   </div><div class="footer-bottom">© ${new Date().getFullYear()} freebird · 本站由 GitHub Pages 驱动</div></footer>
   <button class="to-top" id="toTop" aria-label="回到顶部">${birdIcon('bird-small')}</button>
@@ -217,8 +226,6 @@ function initFeatherCursor() {
       if (p.life <= 0) { points.splice(i, 1); continue; }
       drawFeather(p.x, p.y, p.angle, p.size, p.life * 0.45, '#7dd3fc');
     }
-    drawFeather(mouse.x, mouse.y, -0.6, 7, 0.7, '#5eead4');
-    drawFeather(mouse.x + 3, mouse.y + 4, -0.6, 4.5, 0.35, '#7dd3fc');
     requestAnimationFrame(tick);
   };
   tick();

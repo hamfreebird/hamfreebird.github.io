@@ -4,8 +4,9 @@ data/*.db-*
 data/secret.key
 *.log
 
-# 项目记忆（本地数据，不随代码发布）
+# 项目记忆与发布标记（本地数据，不随代码提交）
 .workbuddy/
+.*.genie
 
 # 依赖与系统文件
 node_modules/

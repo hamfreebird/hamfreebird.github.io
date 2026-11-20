@@ -56,13 +56,15 @@ ADMIN_PASSWORD='your-strong-password' npm start
 2. 在仓库 **Settings → Pages → Build and deployment** 中，将 Source 设为 **GitHub Actions**。
 3. 站点静态资源位于仓库根目录，工作流只会复制 `index.html` 等页面、`assets/` 与 `content/` 到 Pages；`server/` 与 `data/` 不会发布。
 
-### 连接后端
+### 动态后端（已启用）
 
-GitHub Pages 只能托管静态文件，因此动态能力由独立后端提供（可部署在任意支持 Node.js 的平台）：
+GitHub Pages 只能托管静态文件，动态能力由独立 Node 服务提供。当前已发布后端服务，前端 `assets/js/config.js` 已配置其地址与访问码：
 
-1. 部署后端后设置 `CORS_ORIGIN=https://hamfreebird.github.io`，并确保 `ADMIN_PASSWORD` 已配置为强密码。
-2. 编辑 `assets/js/config.js`，把 `API_BASE` 改为后端地址（例如 `https://api.example.com`），提交并推送。
-3. 连接成功后，首页数据源标识会显示「实时数据 · 后端已连接」，后台可登录并进行内容管理；未连接时站点自动使用静态快照，仅显示空状态，留言与后台会给出明确提示。
+- 线上站点访问后端时会自动带上访问码；本地 `localhost` 开发则走同源后端，不依赖线上服务。
+- 后端已允许来自 `https://hamfreebird.github.io` 的跨域请求（CORS_ORIGIN）。
+- 管理员账号 `freebird`，密码由部署环境的 `ADMIN_PASSWORD` 提供，不写入本仓库。本地开发同样可用 `ADMIN_PASSWORD=... npm start` 指定。
+- 连接成功后，首页数据源标识显示「实时数据 · 后端已连接」，文章、留言与后台管理全部可用；若后端不可达，站点自动回退到静态快照并显示明确提示。
+- 如需更换后端地址或访问码，只修改 `assets/js/config.js` 的 `API_BASE` 与 `API_SHARECODE` 后重新发布静态页面即可。
 
 ## 目录结构
 

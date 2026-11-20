@@ -1,5 +1,6 @@
 const CFG = window.FREEBIRD_CONFIG || {};
 const BASE = (CFG.API_BASE || '').replace(/\/$/, '');
+const SHARECODE = CFG.API_SHARECODE || '';
 let source = BASE ? 'backend' : 'static';
 let snapshotPromise = null;
 let availability = null;
@@ -14,7 +15,9 @@ async function request(path, options = {}) {
       headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(options.body);
     }
-    const res = await fetch(BASE + path, { ...options, headers, signal: controller.signal });
+    const target = new URL(BASE + path, location.href);
+    if (SHARECODE) target.searchParams.set('sharecode', SHARECODE);
+    const res = await fetch(target.toString(), { ...options, headers, signal: controller.signal });
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch { throw new Error(`服务端返回了非 JSON 内容（${res.status}）`); }

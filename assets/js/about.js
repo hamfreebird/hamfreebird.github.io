@@ -4,6 +4,12 @@ import { mountShell, observeReveal } from './common.js';
 mountShell('about');
 observeReveal();
 
+const cfg = window.FREEBIRD_CONFIG || {};
+if (cfg.API_BASE) {
+  const share = cfg.API_SHARECODE ? `?sharecode=${encodeURIComponent(cfg.API_SHARECODE)}` : '';
+  document.getElementById('aboutRss').href = `${cfg.API_BASE}/rss.xml${share}`;
+}
+
 (async () => {
   const stats = await api.stats();
   const values = stats
