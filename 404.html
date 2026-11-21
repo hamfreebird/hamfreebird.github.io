@@ -11,7 +11,11 @@
     a { color:#7dd3fc; text-decoration:none; }
     .code { font-size:88px; font-weight:800; letter-spacing:-.06em; background:linear-gradient(120deg,#7dd3fc,#5eead4);
       -webkit-background-clip:text; background-clip:text; color:transparent; }
-    p { color:#92a3bd; }
+    p { color:#92a3bd; padding:0 16px; }
+    @media (max-width:640px) {
+      .code { font-size:clamp(64px, 20vw, 88px); }
+      body { padding: 20px 0; }
+    }
   </style>
 </head>
 <body><div>
