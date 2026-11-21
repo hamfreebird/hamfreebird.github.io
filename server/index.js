@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi } from './api.js';
 import { serveStatic } from './static.js';
+import { autoRestore, writeSnapshot, snapshotInfo } from './snapshot.js';
 
 export function createApp() {
   return http.createServer(async (req, res) => {
@@ -37,11 +38,20 @@ if (invokedDirectly) {
     process.exit(1);
   });
   server.listen(port, host, () => {
+    const info = snapshotInfo();
     console.log(`\n  freebird 后端已就绪  →  http://${host}:${port}`);
     console.log(`  管理后台            →  http://localhost:${port}/admin.html`);
-    console.log(`  API 健康检查         →  http://localhost:${port}/api/health\n`);
+    console.log(`  API 健康检查         →  http://localhost:${port}/api/health`);
+    console.log(`  数据目录            →  ${info.dataDir}`);
+    const restored = autoRestore();
+    if (restored) console.log(`  已从快照恢复         →  ${restored.posts} 篇文章 / ${restored.comments} 条留言`);
+    writeSnapshot('startup');
+    console.log('');
   });
   for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.on(signal, () => server.close(() => process.exit(0)));
+    process.on(signal, () => {
+      writeSnapshot('shutdown');
+      server.close(() => process.exit(0));
+    });
   }
 }

@@ -160,6 +160,15 @@ export const api = {
   async backup(token) {
     return request('/api/backup', { headers: { Authorization: `Bearer ${token}` } });
   },
+  async snapshotInfo(token) {
+    return request('/api/backup/snapshots', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  async snapshotNow(token) {
+    return request('/api/backup/snapshot', { method: 'POST', body: {}, headers: { Authorization: `Bearer ${token}` } });
+  },
+  async restoreLatest(token) {
+    return request('/api/backup/restore-latest', { method: 'POST', body: {}, headers: { Authorization: `Bearer ${token}` } });
+  },
   async importBackup(data, token) {
     return request('/api/backup/import', {
       method: 'POST', body: { backup: data }, headers: { Authorization: `Bearer ${token}` }

@@ -175,6 +175,11 @@ function dashboardHtml() {
           <input type="file" id="importFile" accept="application/json,.json" hidden>
         </div>
         <p class="import-note">恢复会覆盖现有文章、评论、设置与订阅；管理员账号与密码不受影响。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <button class="btn btn-ghost" id="snapshotBtn">立即生成快照</button>
+          <button class="btn btn-ghost" id="restoreLatestBtn">从最近快照恢复</button>
+        </div>
+        <p class="import-note" id="snapshotNote">自动快照：读取中…</p>
       </div>
     </div>
   </section>`;
@@ -345,8 +350,7 @@ function bindDashboard() {
     } catch (error) { toast(error.message); }
   });
 
-  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
-  document.getElementById('importFile').addEventListener('change', async (event) => {
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());  document.getElementById('importFile').addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -360,6 +364,24 @@ function bindDashboard() {
       await Promise.all([loadPosts(1), loadStats(), loadComments()]);
     } catch (error) { toast(error.message); }
     event.target.value = '';
+  });
+
+  document.getElementById('snapshotBtn').addEventListener('click', async () => {
+    try {
+      const result = await api.snapshotNow(token);
+      toast(`快照已生成（${result.latestPosts} 篇文章）`);
+      renderSnapshotInfo(result);
+    } catch (error) { toast(error.message); }
+  });
+
+  document.getElementById('restoreLatestBtn').addEventListener('click', async () => {
+    if (!confirm('从最近一次快照恢复会覆盖现有文章、评论、设置与订阅，确定继续吗？')) return;
+    try {
+      const result = await api.restoreLatest(token);
+      toast(`已从快照恢复 ${result.counts.posts} 篇文章`);
+      await Promise.all([loadPosts(1), loadStats(), loadComments()]);
+      loadSnapshotInfo();
+    } catch (error) { toast(error.message); }
   });
 
   document.getElementById('postFilterBtn').addEventListener('click', () => { postPage = 1; loadPosts(1); });
@@ -376,6 +398,20 @@ function bindDashboard() {
   });
   document.getElementById('bulkApprove').addEventListener('click', () => bulkModerate('approved'));
   document.getElementById('bulkDeleteComments').addEventListener('click', () => bulkModerate('delete'));
+}
+
+function renderSnapshotInfo(info) {
+  const note = document.getElementById('snapshotNote');
+  if (!note || !info) return;
+  const at = info.latestAt ? formatDate(info.latestAt) : '暂无';
+  note.textContent = `自动快照：共 ${info.files || 0} 份，最近 ${at}，含 ${info.latestPosts || 0} 篇文章 · 数据目录 ${info.dataDir || '未知'}`;
+}
+
+async function loadSnapshotInfo() {
+  const note = document.getElementById('snapshotNote');
+  if (!note) return;
+  try { renderSnapshotInfo(await api.snapshotInfo(token)); }
+  catch (error) { note.textContent = `自动快照信息不可用：${error.message}`; }
 }
 
 async function loadStats() {
@@ -520,6 +556,7 @@ async function renderDashboard() {
     if (form.elements[key]) form.elements[key].value = settings[key] || '';
   });
   showDraftNotice();
+  loadSnapshotInfo();
   await loadComments();
 }
 

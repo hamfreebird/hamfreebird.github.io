@@ -47,8 +47,9 @@ ADMIN_PASSWORD='your-strong-password' npm start
 | --- | --- | --- |
 | `PORT` | `8787` | 后端监听端口 |
 | `HOST` | `0.0.0.0` | 监听地址 |
-| `DATA_DIR` | `./data` | SQLite 数据库与密钥目录（已加入 .gitignore） |
+| `DATA_DIR` | `./data` | SQLite 数据库、密钥与自动快照目录（已加入 .gitignore） |
 | `ADMIN_PASSWORD` | 首次启动随机生成 | 管理员初始密码 |
+| `ADMIN_PASSWORD_SHA256` | 空 | 管理员密码的 SHA-256 摘要，用于不允许传输明文的部署环境；与 `ADMIN_PASSWORD` 二选一 |
 | `CORS_ORIGIN` | 空（仅同源） | 允许访问 API 的站点来源，多个用英文逗号分隔 |
 | `SITE_URL` | 请求 Host | 生成 RSS 绝对链接时使用 |
 
@@ -65,6 +66,8 @@ GitHub Pages 只能托管静态文件，动态能力由独立 Node 服务提供�
 - 线上站点访问后端时会自动带上访问码；本地 `localhost` 开发则走同源后端，不依赖线上服务。
 - 后端已允许来自 `https://hamfreebird.github.io` 与发布服务自身域名的跨域请求（CORS_ORIGIN）。若更换发布域名，需同步更新部署时的 `CORS_ORIGIN`。
 - 部分发布平台的网关会注入额外的 `Authorization` 头并影响写请求：后端因此优先读取请求体中的 `access_token`，前端会在所有请求中同时携带该字段；本地部署不受影响。
+- **发布时必须把 `DATA_DIR` 指向项目目录之外**（例如 `$HOME/.freebird-data`）。发布时会同步项目文件，若数据目录在项目内，本地空库会覆盖线上数据。线上后台「数据管理」会显示当前数据目录，可用于核对。
+- 后端在每次写操作后自动生成快照（保留最近 24 份）：启动时若发现数据库为空而快照中有文章，会自动恢复；后台「数据管理」也提供「立即生成快照 / 从最近快照恢复」。
 - 管理员账号 `freebird`，密码由部署环境的 `ADMIN_PASSWORD` 提供，不写入本仓库。本地开发同样可用 `ADMIN_PASSWORD=... npm start` 指定。
 - 连接成功后，首页数据源标识显示「实时数据 · 后端已连接」，文章、留言与后台管理全部可用；若后端不可达，站点自动回退到静态快照并显示明确提示。
 - 如需更换后端地址或访问码，只修改 `assets/js/config.js` 的 `API_BASE` 与 `API_SHARECODE` 后重新发布静态页面即可。

@@ -3,6 +3,7 @@ import {
   db, now, publicPost, safeParseArray, getSettings,
   verifyPassword, verifyAdminPassword, verifyToken, signToken, setAdminPassword, transaction
 } from './db.js';
+import { importDataset, writeSnapshot, readLatestSnapshot, snapshotInfo, scheduleSnapshot } from './snapshot.js';
 
 const json = (res, status, payload, extra = {}) => {
   const body = JSON.stringify(payload);
@@ -305,7 +306,9 @@ export async function handleApi(req, res, url) {
 
     if (pathname === '/api/posts' && req.method === 'POST') {
       if (!isAdmin) return fail(res, 401, '请先登录'), true;
-      return json(res, 201, { ok: true, post: insertPost(await readBody(req)) }), true;
+      const created = insertPost(await readBody(req));
+      scheduleSnapshot('post-create');
+      return json(res, 201, { ok: true, post: created }), true;
     }
 
     if (match && (req.method === 'PUT' || req.method === 'DELETE')) {
@@ -315,9 +318,12 @@ export async function handleApi(req, res, url) {
       if (req.method === 'DELETE') {
         const result = db.prepare('DELETE FROM posts WHERE id = ?').run(id);
         if (!result.changes) return fail(res, 404, '文章不存在'), true;
+        scheduleSnapshot('post-delete');
         return json(res, 200, { ok: true }), true;
       }
-      return json(res, 200, { ok: true, post: updatePost(id, await readBody(req)) }), true;
+      const updated = updatePost(id, await readBody(req));
+      scheduleSnapshot('post-update');
+      return json(res, 200, { ok: true, post: updated }), true;
     }
 
     match = pathname.match(/^\/api\/posts\/(\d+)\/view$/);
@@ -347,6 +353,7 @@ export async function handleApi(req, res, url) {
       db.prepare(`INSERT INTO comments (post_id, author, email, content, status, ip_hash, created_at)
                   VALUES (?, ?, ?, ?, 'pending', ?, ?)`)
         .run(postId, author, email, content, ipHash(req), now());
+      scheduleSnapshot('comment-create');
       return json(res, 202, { ok: true, message: '留言已提交，等待站长审核后显示' }), true;
     }
 
@@ -356,11 +363,13 @@ export async function handleApi(req, res, url) {
       const id = Number(match[1]);
       if (req.method === 'DELETE') {
         db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+        scheduleSnapshot('comment-delete');
         return json(res, 200, { ok: true }), true;
       }
       const body = await readBody(req);
       if (!['approved', 'pending', 'spam'].includes(body.status)) return fail(res, 400, '状态无效'), true;
       db.prepare('UPDATE comments SET status = ? WHERE id = ?').run(body.status, id);
+      scheduleSnapshot('comment-status');
       return json(res, 200, { ok: true }), true;
     }
 
@@ -377,6 +386,7 @@ export async function handleApi(req, res, url) {
       const body = await readBody(req);
       const put = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
       transaction(() => Object.entries(body).forEach(([k, v]) => put.run(k, String(v).slice(0, 2000))));
+      scheduleSnapshot('settings');
       return json(res, 200, { ok: true, settings: getSettings() }), true;
     }
 
@@ -428,65 +438,29 @@ export async function handleApi(req, res, url) {
       if (!isAdmin) return fail(res, 401, '请先登录'), true;
       const body = await readBody(req);
       const backup = body.backup && typeof body.backup === 'object' ? body.backup : body;
-      const groups = ['posts', 'comments', 'settings', 'subscribers'];
-      for (const key of groups) {
-        if (backup[key] !== undefined && !Array.isArray(backup[key])) {
-          return fail(res, 400, `${key} 必须是数组`), true;
-        }
-        if ((backup[key]?.length || 0) > 2000) return fail(res, 400, `${key} 数据过多`), true;
-      }
-      const postsIn = backup.posts || [];
-      const commentsIn = backup.comments || [];
-      const settingsIn = backup.settings || [];
-      const subscribersIn = backup.subscribers || [];
-      if (postsIn.some((p) => !p || typeof p.slug !== 'string' || typeof p.title !== 'string')) {
-        return fail(res, 400, '文章数据格式不正确'), true;
-      }
-      const idOr = (v) => (v === undefined || v === null || v === '' ? null : (Number.isInteger(Number(v)) ? Number(v) : null));
-      const numOr = (v, fallback) => (v === undefined || v === null || v === '' ? fallback : (Number.isFinite(Number(v)) ? Number(v) : fallback));
-      const textOr = (v, fallback = '') => (typeof v === 'string' ? v : fallback);
-      transaction(() => {
-        db.exec('DELETE FROM comments; DELETE FROM posts; DELETE FROM settings; DELETE FROM subscribers;');
-        const addPost = db.prepare(`INSERT INTO posts
-          (id, slug, title, excerpt, content, category, tags, cover, read_minutes, featured, status, views, published_at, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-        for (const p of postsIn) {
-          addPost.run(
-            idOr(p.id), textOr(p.slug).slice(0, 60), textOr(p.title).slice(0, 200),
-            textOr(p.excerpt), textOr(p.content), textOr(p.category, '随笔').slice(0, 40),
-            typeof p.tags === 'string' ? p.tags : JSON.stringify(Array.isArray(p.tags) ? p.tags : []),
-            textOr(p.cover, 'dawn').slice(0, 30), numOr(p.readMinutes ?? p.read_minutes, 3),
-            p.featured ? 1 : 0, ['published', 'draft'].includes(p.status) ? p.status : 'draft',
-            numOr(p.views, 0), textOr(p.publishedAt ?? p.published_at) || null,
-            textOr(p.createdAt ?? p.created_at) || now(), textOr(p.updatedAt ?? p.updated_at) || now()
-          );
-        }
-        const addComment = db.prepare(`INSERT INTO comments
-          (id, post_id, author, email, content, status, ip_hash, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-        for (const c of commentsIn) {
-          addComment.run(
-            idOr(c.id), numOr(c.postId ?? c.post_id, 0), textOr(c.author, '匿名旅人').slice(0, 40),
-            textOr(c.email).slice(0, 120), textOr(c.content),
-            ['approved', 'pending', 'spam'].includes(c.status) ? c.status : 'pending',
-            textOr(c.ipHash ?? c.ip_hash).slice(0, 64), textOr(c.createdAt ?? c.created_at) || now()
-          );
-        }
-        const addSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
-        for (const s of settingsIn) {
-          if (!s || typeof s.key !== 'string') continue;
-          addSetting.run(s.key.slice(0, 100), textOr(s.value).slice(0, 2000));
-        }
-        const addSubscriber = db.prepare('INSERT INTO subscribers (email, created_at) VALUES (?, ?)');
-        for (const s of subscribersIn) {
-          const email = textOr(s?.email).trim().toLowerCase();
-          if (email) addSubscriber.run(email.slice(0, 120), textOr(s?.createdAt ?? s?.created_at) || now());
-        }
-      });
-      return json(res, 200, {
-        ok: true, message: '备份已恢复',
-        counts: { posts: postsIn.length, comments: commentsIn.length, settings: settingsIn.length, subscribers: subscribersIn.length }
-      }), true;
+      const counts = importDataset(backup);
+      writeSnapshot('import');
+      return json(res, 200, { ok: true, message: '备份已恢复', counts }), true;
+    }
+
+    if (pathname === '/api/backup/snapshots' && req.method === 'GET') {
+      if (!isAdmin) return fail(res, 401, '请先登录'), true;
+      return json(res, 200, { ok: true, ...snapshotInfo() }), true;
+    }
+
+    if (pathname === '/api/backup/snapshot' && req.method === 'POST') {
+      if (!isAdmin) return fail(res, 401, '请先登录'), true;
+      const ok = writeSnapshot('manual');
+      return json(res, ok ? 200 : 500, ok ? { ok: true, message: '快照已生成', ...snapshotInfo() } : { ok: false, error: '快照写入失败' }), true;
+    }
+
+    if (pathname === '/api/backup/restore-latest' && req.method === 'POST') {
+      if (!isAdmin) return fail(res, 401, '请先登录'), true;
+      const latest = readLatestSnapshot();
+      if (!latest) return fail(res, 404, '暂无可用快照'), true;
+      const counts = importDataset(latest);
+      writeSnapshot('restore-latest');
+      return json(res, 200, { ok: true, message: '已从最近快照恢复', counts }), true;
     }
 
     if (pathname === '/rss.xml' && req.method === 'GET') {

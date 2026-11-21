@@ -134,6 +134,27 @@ await check('备份导出与恢复', async () => {
   assert(list.body.items.some((p) => p.slug === 'backup-test'), '恢复后文章缺失');
 });
 
+await check('自动快照与一键恢复', async () => {
+  const headers = { Authorization: `Bearer ${token}` };
+  const info = await json('/api/backup/snapshots', { headers });
+  assert(info.status === 200, '快照信息接口不可用');
+  assert(info.body.files >= 1, '尚无自动快照');
+  const unauth = await json('/api/backup/snapshots');
+  assert(unauth.status === 401, '未授权查询快照未被拒绝');
+  const snap = await json('/api/backup/snapshot', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access_token: token })
+  });
+  assert(snap.status === 200, '手动生成快照失败');
+  assert(snap.body.latestPosts >= 1, '快照中没有文章');
+  const restore = await json('/api/backup/restore-latest', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access_token: token })
+  });
+  assert(restore.status === 200, `快照恢复失败：${restore.status}`);
+  assert(restore.body.counts.posts >= 1, '快照恢复后文章缺失');
+});
+
 await new Promise((resolve) => server.close(resolve));
 closeDb();
 try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* 临时文件可稍后清理 */ }
