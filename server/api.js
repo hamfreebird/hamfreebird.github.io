@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {
   db, now, publicPost, safeParseArray, getSettings,
-  verifyPassword, verifyToken, signToken, setAdminPassword, transaction
+  verifyPassword, verifyAdminPassword, verifyToken, signToken, setAdminPassword, transaction
 } from './db.js';
 
 const json = (res, status, payload, extra = {}) => {
@@ -268,7 +268,7 @@ export async function handleApi(req, res, url) {
       if (rateLimited(`login:${clientIp(req)}`, 10, 15 * 60 * 1000)) return fail(res, 429, '尝试次数过多，请稍后再试'), true;
       const body = await readBody(req);
       const row = db.prepare('SELECT * FROM admins WHERE username = ?').get(str(body.username, '', 60));
-      if (!row || !verifyPassword(body.password || '', row.salt, row.password_hash)) {
+      if (!row || !verifyAdminPassword(body.password || '', row.salt, row.password_hash)) {
         return fail(res, 401, '用户名或密码不正确'), true;
       }
       return json(res, 200, {

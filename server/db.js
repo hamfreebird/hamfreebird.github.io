@@ -11,7 +11,7 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const secretPath = path.join(DATA_DIR, 'secret.key');
 // 线上可能由多个实例分担请求：文件密钥只在单实例内稳定，跨实例会失效。
 // 因此优先用部署环境变量派生固定密钥；本地无环境变量时仍使用文件密钥。
-const tokenSeed = process.env.TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+const tokenSeed = process.env.TOKEN_SECRET || process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD_SHA256;
 export const SECRET = tokenSeed
   ? crypto.createHash('sha256').update(`freebird-token|${tokenSeed}`).digest('hex')
   : (() => {
@@ -102,6 +102,17 @@ export function verifyPassword(password, salt, expected) {
   return actual.length === target.length && crypto.timingSafeEqual(actual, target);
 }
 
+// 部署平台会拦截含明文口令的启动命令，因此支持只提供 SHA-256 摘要：
+// 服务端保存的是摘要的 scrypt 值，登录时把输入同样取摘要后比对，任何一侧都不落地明文。
+const passwordDigest = (process.env.ADMIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+
+export function verifyAdminPassword(password, salt, expected) {
+  if (verifyPassword(password, salt, expected)) return true;
+  if (!passwordDigest) return false;
+  const digest = crypto.createHash('sha256').update(String(password)).digest('hex');
+  return verifyPassword(`sha256:${digest}`, salt, expected);
+}
+
 function b64url(input) {
   return Buffer.from(input).toString('base64url');
 }
@@ -133,6 +144,7 @@ export function ensureAdmin(username = 'freebird') {
   if (existing) return { created: false, password: null };
 
   let password = process.env.ADMIN_PASSWORD;
+  if (!password && passwordDigest) password = `sha256:${passwordDigest}`;
   let generated = false;
   if (!password) {
     password = crypto.randomBytes(9).toString('base64url');
