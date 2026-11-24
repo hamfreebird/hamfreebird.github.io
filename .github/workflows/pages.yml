@@ -7,8 +7,7 @@ on:
 
 permissions:
   contents: read
-  # deploy-pages v4+ 需要读取本次运行上传的 artifact；
-  # 显式声明 permissions 时未列出的作用域会被置为 none。
+  # deploy-pages v4+ 需要读取 artifact；显式声明 permissions 时未列出的作用域会被置为 none。
   actions: read
   pages: write
   id-token: write
@@ -18,11 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,15 +29,23 @@ jobs:
           cp index.html post.html archive.html about.html admin.html 404.html favicon.svg .nojekyll _site/
           cp -r assets content _site/
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
       # 按运行尝试次数命名：重跑失败作业时不会与上一次的 artifact 重名。
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
           name: github-pages-${{ github.run_attempt }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Artifact 索引服务在上传后存在短暂延迟，给 ListArtifacts 留出传播时间。
+      - name: Wait for artifact index
+        run: sleep 15
 
       - name: Deploy
         id: deployment
