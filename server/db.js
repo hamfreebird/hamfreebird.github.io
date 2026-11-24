@@ -31,6 +31,7 @@ db.exec(`
     title TEXT NOT NULL,
     excerpt TEXT NOT NULL DEFAULT '',
     content TEXT NOT NULL DEFAULT '',
+    format TEXT NOT NULL DEFAULT 'html',
     category TEXT NOT NULL DEFAULT '随笔',
     tags TEXT NOT NULL DEFAULT '[]',
     cover TEXT NOT NULL DEFAULT 'dawn',
@@ -77,6 +78,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status, published_at DESC);
   CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id, status, created_at DESC);
 `);
+
+// 既有数据库升级：补上正文格式字段，旧内容一律按 HTML 处理。
+if (!db.prepare('PRAGMA table_info(posts)').all().some((col) => col.name === 'format')) {
+  db.exec("ALTER TABLE posts ADD COLUMN format TEXT NOT NULL DEFAULT 'html'");
+}
 
 export const now = () => new Date().toISOString();
 
@@ -206,10 +212,10 @@ export function getSettings() {
 
 export function publicPost(row) {
   if (!row) return null;
-  const { id, slug, title, excerpt, content, category, tags, cover, read_minutes,
+  const { id, slug, title, excerpt, content, format, category, tags, cover, read_minutes,
     featured, status, views, published_at, created_at, updated_at } = row;
   return {
-    id, slug, title, excerpt, content, category,
+    id, slug, title, excerpt, content, format: format || 'html', category,
     tags: safeParseArray(tags), cover, readMinutes: read_minutes,
     featured: Boolean(featured), status, views,
     publishedAt: published_at, createdAt: created_at, updatedAt: updated_at

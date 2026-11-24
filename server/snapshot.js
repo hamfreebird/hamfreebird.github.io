@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { db, now, transaction, DATA_DIR } from './db.js';
+import { looksLikeHtml } from '../assets/js/markdown.js';
 
 // 快照放在数据目录内：数据目录位于项目之外，重新发布时不会被项目文件覆盖。
 export const SNAPSHOT_DIR = path.join(DATA_DIR, 'snapshots');
@@ -116,12 +117,14 @@ export function importDataset(backup) {
   transaction(() => {
     db.exec('DELETE FROM comments; DELETE FROM posts; DELETE FROM settings; DELETE FROM subscribers;');
     const addPost = db.prepare(`INSERT INTO posts
-      (id, slug, title, excerpt, content, category, tags, cover, read_minutes, featured, status, views, published_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      (id, slug, title, excerpt, content, format, category, tags, cover, read_minutes, featured, status, views, published_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const p of postsIn) {
+      const content = textOr(p.content);
+      const format = ['markdown', 'html'].includes(p.format) ? p.format : (looksLikeHtml(content) ? 'html' : 'markdown');
       addPost.run(
         idOr(p.id), textOr(p.slug).slice(0, 60), textOr(p.title).slice(0, 200),
-        textOr(p.excerpt), textOr(p.content), textOr(p.category, '随笔').slice(0, 40),
+        textOr(p.excerpt), content, format, textOr(p.category, '随笔').slice(0, 40),
         typeof p.tags === 'string' ? p.tags : JSON.stringify(Array.isArray(p.tags) ? p.tags : []),
         textOr(p.cover, 'dawn').slice(0, 30), numOr(p.readMinutes ?? p.read_minutes, 3),
         p.featured ? 1 : 0, ['published', 'draft'].includes(p.status) ? p.status : 'draft',

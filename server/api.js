@@ -4,6 +4,7 @@ import {
   verifyPassword, verifyAdminPassword, verifyToken, signToken, setAdminPassword, transaction
 } from './db.js';
 import { importDataset, writeSnapshot, readLatestSnapshot, snapshotInfo, scheduleSnapshot } from './snapshot.js';
+import { looksLikeHtml } from '../assets/js/markdown.js';
 
 const json = (res, status, payload, extra = {}) => {
   const body = JSON.stringify(payload);
@@ -102,8 +103,11 @@ function postInput(body, existing = null) {
   const readMinutes = Number.isFinite(Number(body.readMinutes))
     ? Math.min(180, Math.max(1, Math.round(Number(body.readMinutes))))
     : (existing?.read_minutes || 3);
+  const format = ['markdown', 'html'].includes(body.format)
+    ? body.format
+    : (existing?.format || (looksLikeHtml(content) ? 'html' : 'markdown'));
   return {
-    slug, title, content, category, tags: JSON.stringify(tags), cover, status, readMinutes,
+    slug, title, content, format, category, tags: JSON.stringify(tags), cover, status, readMinutes,
     excerpt: str(body.excerpt, existing?.excerpt || '', 300),
     featured: body.featured === undefined ? (existing?.featured ?? 0) : (body.featured ? 1 : 0),
     publishedAt: str(body.publishedAt, existing?.published_at || now(), 40) || now()
@@ -116,10 +120,10 @@ function insertPost(body) {
   if (exists) throw Object.assign(new Error('该 slug 已存在'), { status: 409 });
   const stamp = now();
   const result = db.prepare(`
-    INSERT INTO posts (slug, title, excerpt, content, category, tags, cover, read_minutes,
+    INSERT INTO posts (slug, title, excerpt, content, format, category, tags, cover, read_minutes,
       featured, status, published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(p.slug, p.title, p.excerpt, p.content, p.category, p.tags, p.cover,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(p.slug, p.title, p.excerpt, p.content, p.format, p.category, p.tags, p.cover,
     p.readMinutes, p.featured, p.status, p.publishedAt, stamp, stamp);
   return publicPost(db.prepare('SELECT * FROM posts WHERE id = ?').get(result.lastInsertRowid));
 }
@@ -131,9 +135,9 @@ function updatePost(id, body) {
   const clash = db.prepare('SELECT id FROM posts WHERE slug = ? AND id != ?').get(p.slug, id);
   if (clash) throw Object.assign(new Error('该 slug 已存在'), { status: 409 });
   db.prepare(`
-    UPDATE posts SET slug=?, title=?, excerpt=?, content=?, category=?, tags=?, cover=?,
+    UPDATE posts SET slug=?, title=?, excerpt=?, content=?, format=?, category=?, tags=?, cover=?,
       read_minutes=?, featured=?, status=?, published_at=?, updated_at=? WHERE id=?
-  `).run(p.slug, p.title, p.excerpt, p.content, p.category, p.tags, p.cover,
+  `).run(p.slug, p.title, p.excerpt, p.content, p.format, p.category, p.tags, p.cover,
     p.readMinutes, p.featured, p.status, p.publishedAt, now(), id);
   return publicPost(db.prepare('SELECT * FROM posts WHERE id = ?').get(id));
 }

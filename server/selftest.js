@@ -155,6 +155,30 @@ await check('自动快照与一键恢复', async () => {
   assert(restore.body.counts.posts >= 1, '快照恢复后文章缺失');
 });
 
+await check('Markdown 正文格式与渲染', async () => {
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const created = await json('/api/posts', {
+    method: 'POST', headers,
+    body: JSON.stringify({ title: 'Markdown 测试', slug: 'md-test', content: '# 标题\n\n**加粗**', format: 'markdown', status: 'published' })
+  });
+  assert(created.status === 201, `Markdown 文章创建失败：${created.status}`);
+  assert(created.body.post.format === 'markdown', '未返回 markdown 格式');
+  const fetched = await json('/api/posts/md-test');
+  assert(fetched.body.post.format === 'markdown', 'Markdown 格式未持久化');
+  const htmlPost = await json('/api/posts', {
+    method: 'POST', headers,
+    body: JSON.stringify({ title: 'HTML 文章', slug: 'html-test', content: '<p>hello</p>', status: 'published' })
+  });
+  assert(htmlPost.body.post.format === 'html', 'HTML 内容未被识别为 html');
+
+  const { markdownToHtml, renderContent } = await import('../assets/js/markdown.js');
+  const rendered = markdownToHtml('# 标题\n\n**加粗**\n\n```js\nconst a = 1 < 2;\n```');
+  assert(rendered.includes('<h1>标题</h1>') && rendered.includes('<strong>加粗</strong>'), 'Markdown 基本语法渲染失败');
+  assert(rendered.includes('1 &lt; 2'), '代码块未转义');
+  assert(!markdownToHtml('<script>alert(1)</script>').includes('<script>'), '原始 HTML 未转义');
+  assert(renderContent('<p>旧文章</p>').includes('<p>旧文章</p>'), '既有 HTML 内容渲染异常');
+});
+
 await new Promise((resolve) => server.close(resolve));
 closeDb();
 try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* 临时文件可稍后清理 */ }

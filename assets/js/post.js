@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { mountShell, birdIcon, escapeHtml, formatDate, toast, observeReveal } from './common.js';
+import { renderContent } from './markdown.js';
 
 mountShell('');
 const root = document.getElementById('articleRoot');
@@ -33,7 +34,7 @@ function commentHtml(c) {
         <time>${formatDate(p.publishedAt)}</time><i class="dot"></i><span>${p.readMinutes || 3} 分钟阅读</span></div>
     </header>
     <div class="article-cover reveal" data-cover="${cover}"><span class="cover-wing" style="position:absolute;width:280px;height:150px;right:40px;top:70px;border-radius:100% 0 100% 0;background:linear-gradient(120deg,rgba(125,211,252,.32),transparent);transform:rotate(-22deg)"></span></div>
-    <div class="article-body reveal">${p.content}</div>
+    <div class="article-body reveal">${renderContent(p.content, p.format)}</div>
     <div class="article-tags">${(p.tags || []).map((t) => `<a class="tag" href="archive.html?tag=${encodeURIComponent(t)}">#${escapeHtml(t)}</a>`).join('')}</div>
     <section class="comments">
       <h3>${birdIcon('bird-small')} 留言 <span class="muted" style="font-size:13px">（${(p.comments || []).length}）</span></h3>

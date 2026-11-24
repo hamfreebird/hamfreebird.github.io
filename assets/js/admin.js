@@ -82,6 +82,7 @@ function dashboardHtml() {
         <div class="editor-bar">
           <div class="editor-modes">
             <button type="button" class="mini-btn active" data-editor-mode="visual">可视化</button>
+            <button type="button" class="mini-btn" data-editor-mode="markdown">Markdown</button>
             <button type="button" class="mini-btn" data-editor-mode="source">HTML 源码</button>
             <button type="button" class="mini-btn" data-editor-mode="preview">预览</button>
           </div>
@@ -105,6 +106,7 @@ function dashboardHtml() {
         </div>
         <div class="editor-surface">
           <div class="editor-visual article-body" id="editorVisual" contenteditable="true" data-placeholder="从这里开始写…"></div>
+          <textarea class="editor-source editor-markdown" id="editorMarkdown" spellcheck="false" placeholder="# 用 Markdown 写作…&#10;&#10;支持标题、列表、引用、代码块与表格" hidden></textarea>
           <textarea class="editor-source" id="editorSource" spellcheck="false" placeholder="<p>也可以直接粘贴 HTML…</p>" hidden></textarea>
           <div class="editor-preview article-body preview-body" id="editorPreview" hidden></div>
         </div>
@@ -201,7 +203,7 @@ function editorValues() {
     status: field('status')?.value || 'draft',
     featured: Boolean(field('featured')?.checked),
     excerpt: (field('excerpt')?.value || '').trim(),
-    content: editorApi?.getHtml() || ''
+    ...(editorApi?.getContent() || { content: '', format: 'markdown' })
   };
 }
 
@@ -252,8 +254,8 @@ function fillEditor(p) {
   field('featured').checked = Boolean(p?.featured);
   field('excerpt').value = p?.excerpt || '';
   slugTouched = Boolean(p);
-  editorApi?.setHtml(p?.content || '', { silent: true });
-  editorApi?.setMode('visual');
+  editorApi?.setContent(p?.content || '', p?.format || '');
+  editorApi?.setMode(p?.format === 'html' ? 'visual' : 'markdown');
   document.getElementById('editorTitle').textContent = p ? `编辑文章 · ${p.title}` : '写新文章';
   initializing = false;
   document.getElementById('postEditor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
