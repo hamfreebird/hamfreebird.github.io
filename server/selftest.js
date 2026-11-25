@@ -179,6 +179,18 @@ await check('Markdown 正文格式与渲染', async () => {
   assert(renderContent('<p>旧文章</p>').includes('<p>旧文章</p>'), '既有 HTML 内容渲染异常');
 });
 
+await check('正文 Base64 传输与脚本片段保留', async () => {
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const raw = '# 示例\n\n```js\nalert(1);\n```\n\n<script>console.log(1)</script>';
+  const encoded = Buffer.from(raw, 'utf8').toString('base64');
+  const created = await json('/api/posts', {
+    method: 'POST', headers,
+    body: JSON.stringify({ title: 'Base64 正文', slug: 'b64-body', content: encoded, contentEncoding: 'base64', format: 'markdown', status: 'draft' })
+  });
+  assert(created.status === 201, `Base64 文章创建失败：${created.status}`);
+  assert(created.body.post.content === raw, 'Base64 正文未被原样还原');
+});
+
 await new Promise((resolve) => server.close(resolve));
 closeDb();
 try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* 临时文件可稍后清理 */ }
