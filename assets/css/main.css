@@ -123,6 +123,11 @@ img { max-width: 100%; }
 h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
 .section-title { font-size: clamp(26px, 4vw, 38px); letter-spacing: -0.03em; }
 .section-sub { color: var(--muted); font-size: 14px; }
+
+/* ---------- 高频传播与日地数据 ---------- */
+.solar-panel { display: flex; justify-content: center; padding: 22px; border: 1px solid var(--border); border-radius: 22px; background: var(--panel); }
+.solar-panel a { display: block; max-width: 100%; line-height: 0; }
+.solar-panel img { display: block; width: 100%; max-width: 615px; height: auto; border-radius: 12px; background: #0a1421; }
 .muted { color: var(--muted); }
 .dim { color: var(--dim); }
 .accent { color: var(--sky); }
@@ -375,6 +380,9 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
 }
 
 @media (max-width: 640px) {
+  /* 日地数据图信息密度高，小屏改为面板内横向滚动而不是整体缩放 */
+  .solar-panel { padding: 12px; border-radius: 18px; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .solar-panel img { width: 560px; max-width: none; }
   /* 头部：单行容纳品牌、导航与操作，保留管理入口 */
   .header-inner { padding: 11px 14px; gap: 10px; }
   .brand { gap: 7px; flex-shrink: 0; }
