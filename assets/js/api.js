@@ -12,8 +12,8 @@ async function request(path, options = {}) {
   try {
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
     const adminToken = sessionStorage.getItem('freebird_admin_token');
-    // 查询串会进入代理日志，令牌改走自定义头；写请求仍附带请求体令牌作为网关兼容回退。
-    if (adminToken) headers['X-Access-Token'] = adminToken;
+    // 查询串会进入代理日志，令牌统一放在请求体（网关会剥离 Authorization 与自定义头）。
+    // 服务端仍兼容 X-Access-Token，供直连部署或反向代理可透传头的场景使用。
     if (options.body && typeof options.body !== 'string') {
       if (adminToken) options.body = { ...options.body, access_token: adminToken };
       headers['Content-Type'] = 'application/json';
