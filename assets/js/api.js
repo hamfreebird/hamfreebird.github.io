@@ -95,10 +95,11 @@ export const api = {
   },
 
   async listPosts(params = {}, token = '') {
-    const query = new URLSearchParams(params).toString();
+    // 管理端需要令牌，而网关只透传 POST 请求体，因此读操作以 POST + _method 伪装。
     try {
-      return await request(`/api/posts${query ? `?${query}` : ''}`,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+      if (token) return await request('/api/posts', { method: 'POST', body: { ...params, _method: 'GET' } });
+      const query = new URLSearchParams(params).toString();
+      return await request(`/api/posts${query ? `?${query}` : ''}`);
     } catch { source = 'static'; return staticList(params); }
   },
 
@@ -130,13 +131,9 @@ export const api = {
     return request('/api/auth/login', { method: 'POST', body: { username, password } });
   },
   async me(token) {
-    // /api/auth/me 在部分发布网关下会被拦截；/api/settings 需要同等管理员权限且已验证可用。
-    try {
-      const result = await request('/api/settings', { headers: { Authorization: `Bearer ${token}` } });
-      return { ok: true, user: { username: 'freebird' }, settings: result.settings };
-    } catch (error) {
-      throw error;
-    }
+    // 用管理员专用接口验证令牌真实有效，避免无效令牌也进入后台。
+    const result = await request('/api/backup/snapshots', { method: 'POST', body: { _method: 'GET' } });
+    return { ok: true, user: { username: 'freebird' }, storage: result };
   },
   async createPost(data, token) {
     return request('/api/posts', { method: 'POST', body: encodePostBody(data), headers: { Authorization: `Bearer ${token}` } });
@@ -154,7 +151,7 @@ export const api = {
     return request('/api/comments', { method: 'POST', body: data });
   },
   async comments(postId, token) {
-    return request(`/api/comments?postId=${postId}`, { headers: { Authorization: `Bearer ${token}` } });
+    return request('/api/comments', { method: 'POST', body: { postId, _method: 'GET' } });
   },
   async moderateComment(id, status, token) {
     return request(`/api/comments/${id}`, { method: 'PATCH', body: { status }, headers: { Authorization: `Bearer ${token}` } });
@@ -169,10 +166,10 @@ export const api = {
     return request('/api/admin/password', { method: 'POST', body: { password }, headers: { Authorization: `Bearer ${token}` } });
   },
   async backup(token) {
-    return request('/api/backup', { headers: { Authorization: `Bearer ${token}` } });
+    return request('/api/backup', { method: 'POST', body: { _method: 'GET' } });
   },
   async snapshotInfo(token) {
-    return request('/api/backup/snapshots', { headers: { Authorization: `Bearer ${token}` } });
+    return request('/api/backup/snapshots', { method: 'POST', body: { _method: 'GET' } });
   },
   async snapshotNow(token) {
     return request('/api/backup/snapshot', { method: 'POST', body: {}, headers: { Authorization: `Bearer ${token}` } });

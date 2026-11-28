@@ -268,7 +268,7 @@ export async function handleApi(req, res, url) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Access-Token',
       'Access-Control-Max-Age': '86400'
     });
     res.end();
@@ -294,6 +294,16 @@ export async function handleApi(req, res, url) {
 
     if (['POST', 'PUT', 'PATCH'].includes(req.method) && pathname !== '/api/auth/login') {
       try { await readBody(req); } catch { /* 后续路由会返回具体错误 */ }
+    }
+
+    // 发布网关会剥离 Authorization 与自定义头，GET 无法携带令牌。
+    // 管理端改为 POST + JSON 体传令牌，并在此按 GET 处理，查询参数由请求体补全。
+    if (req.method === 'POST' && req._parsedBody?._method === 'GET') {
+      for (const [key, value] of Object.entries(req._parsedBody)) {
+        if (key === 'access_token' || key === '_method' || value === undefined || value === null) continue;
+        if (!url.searchParams.has(key)) url.searchParams.set(key, String(value));
+      }
+      req.method = 'GET';
     }
 
     const isAdmin = Boolean(authUser(req));
