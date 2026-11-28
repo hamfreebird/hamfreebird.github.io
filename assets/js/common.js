@@ -264,7 +264,7 @@ function initMisc() {
 }
 
 export function mountShell(activePage = '') {
-  document.body.insertAdjacentHTML('afterbegin', buildSky());
+  document.body.insertAdjacentHTML('afterbegin', `<a class="skip-link" href="#main">跳到主内容</a>${buildSky()}`);
   const headerSlot = document.getElementById('shell-header');
   const footerSlot = document.getElementById('shell-footer');
   if (headerSlot) headerSlot.outerHTML = buildHeader(activePage) + `

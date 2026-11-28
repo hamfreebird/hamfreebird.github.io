@@ -26,8 +26,17 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site
-          cp index.html post.html archive.html about.html admin.html 404.html favicon.svg .nojekyll _site/
+          cp index.html post.html archive.html about.html admin.html 404.html favicon.svg robots.txt sitemap.xml .nojekyll _site/
           cp -r assets content _site/
+
+      # 拉取已发布文章写入降级快照，并生成静态 RSS / sitemap（API 不可达时保留仓库快照）。
+      - name: Build static fallback, RSS and sitemap
+        run: node scripts/build-static.mjs
+        env:
+          OUT_DIR: _site
+          SITE_URL: https://hamfreebird.github.io
+          SITE_API: https://freebird-blog-backend.app.workbuddy.host
+          API_SHARECODE: APC5TNO3YU
 
       # 按运行尝试次数命名：重跑失败作业时不会与上一次的 artifact 重名。
       - name: Upload artifact

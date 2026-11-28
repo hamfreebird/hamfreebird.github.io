@@ -50,10 +50,13 @@ ADMIN_PASSWORD='your-strong-password' npm start
 | `PORT` | `8787` | 后端监听端口 |
 | `HOST` | `0.0.0.0` | 监听地址 |
 | `DATA_DIR` | `./data` | SQLite 数据库、密钥与自动快照目录（已加入 .gitignore） |
-| `ADMIN_PASSWORD` | 首次启动随机生成 | 管理员初始密码 |
-| `ADMIN_PASSWORD_SHA256` | 空 | 管理员密码的 SHA-256 摘要，用于不允许传输明文的部署环境；与 `ADMIN_PASSWORD` 二选一 |
+| `ADMIN_PASSWORD` | 首次启动随机生成 | 管理员初始密码（优先级低于哈希） |
+| `ADMIN_PASSWORD_HASH` | 空 | 形如 `scrypt:<salt>:<hash>` 的口令哈希，用 `npm run hash-password -- '密码'` 生成；不能像摘要那样被当作口令重放 |
+| `TOKEN_SECRET` | 回退到口令种子 | 令牌签名密钥；多实例部署时建议显式设置 |
+| `TRUST_PROXY` | 空（不采信） | 设为 `1` 时采信 `X-Forwarded-For`；仅在服务确实位于反向代理之后时开启 |
+| `TRUST_PROXY_HOPS` | `1` | 右侧受信代理层数，默认取 XFF 最后一项（网关追加的真实地址） |
 | `CORS_ORIGIN` | 空（仅同源） | 允许访问 API 的站点来源，多个用英文逗号分隔 |
-| `SITE_URL` | 请求 Host | 生成 RSS 绝对链接时使用 |
+| `SITE_URL` | 请求 Host | 生成 RSS 绝对链接时使用，线上应设为公开站点地址 |
 
 ## 部署到 GitHub Pages
 
@@ -67,7 +70,8 @@ GitHub Pages 只能托管静态文件，动态能力由独立 Node 服务提供�
 
 - 线上站点访问后端时会自动带上访问码；本地 `localhost` 开发则走同源后端，不依赖线上服务。
 - 后端已允许来自 `https://hamfreebird.github.io` 与发布服务自身域名的跨域请求（CORS_ORIGIN）。若更换发布域名，需同步更新部署时的 `CORS_ORIGIN`。
-- 部分发布平台的网关会注入额外的 `Authorization` 头并影响写请求：后端因此优先读取请求体中的 `access_token`，前端会在所有请求中同时携带该字段；本地部署不受影响。
+- 部分发布平台的网关会剥离或改写 `Authorization` 头：令牌优先通过 `X-Access-Token` 头传递，写请求同时在请求体附带 `access_token` 作为回退；**不再使用查询串传令牌**，避免进入代理日志。
+- 部署在反向代理之后时设置 `TRUST_PROXY=1`，否则限流会把所有访客算作同一个网关 IP；直连部署请保持默认关闭，防止伪造 `X-Forwarded-For` 绕过限流。
 - **发布时必须把 `DATA_DIR` 指向项目目录之外**（例如 `$HOME/.freebird-data`）。发布时会同步项目文件，若数据目录在项目内，本地空库会覆盖线上数据。线上后台「数据管理」会显示当前数据目录，可用于核对。
 - 后端在每次写操作后自动生成快照（保留最近 24 份）：启动时若发现数据库为空而快照中有文章，会自动恢复；后台「数据管理」也提供「立即生成快照 / 从最近快照恢复」。
 - 管理员账号 `freebird`，密码由部署环境的 `ADMIN_PASSWORD` 提供，不写入本仓库。本地开发同样可用 `ADMIN_PASSWORD=... npm start` 指定。

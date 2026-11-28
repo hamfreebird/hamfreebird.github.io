@@ -11,7 +11,7 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const secretPath = path.join(DATA_DIR, 'secret.key');
 // 线上可能由多个实例分担请求：文件密钥只在单实例内稳定，跨实例会失效。
 // 因此优先用部署环境变量派生固定密钥；本地无环境变量时仍使用文件密钥。
-const tokenSeed = process.env.TOKEN_SECRET || process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD_SHA256;
+const tokenSeed = process.env.TOKEN_SECRET || process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD_HASH;
 export const SECRET = tokenSeed
   ? crypto.createHash('sha256').update(`freebird-token|${tokenSeed}`).digest('hex')
   : (() => {
@@ -108,15 +108,15 @@ export function verifyPassword(password, salt, expected) {
   return actual.length === target.length && crypto.timingSafeEqual(actual, target);
 }
 
-// 部署平台会拦截含明文口令的启动命令，因此支持只提供 SHA-256 摘要：
-// 服务端保存的是摘要的 scrypt 值，登录时把输入同样取摘要后比对，任何一侧都不落地明文。
-const passwordDigest = (process.env.ADMIN_PASSWORD_SHA256 || '').trim().toLowerCase();
-
-export function verifyAdminPassword(password, salt, expected) {
-  if (verifyPassword(password, salt, expected)) return true;
-  if (!passwordDigest) return false;
-  const digest = crypto.createHash('sha256').update(String(password)).digest('hex');
-  return verifyPassword(`sha256:${digest}`, salt, expected);
+// 部署平台不允许在启动命令中传明文口令，因此支持直接提供 scrypt 口令哈希。
+// 哈希只能用于校验、不能反推明文，也不能像摘要那样被当作口令重放。
+// 格式：scrypt:<salt>:<hash>（salt 与 hash 均为十六进制，冒号分隔便于 shell 传递）。
+function envPasswordHash() {
+  const raw = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+  const [scheme, salt, hash] = raw.split(':');
+  if (scheme !== 'scrypt' || !salt || !hash) return null;
+  if (!/^[0-9a-f]{16,}$/i.test(salt) || !/^[0-9a-f]{32,}$/i.test(hash)) return null;
+  return { salt, hash };
 }
 
 function b64url(input) {
@@ -147,10 +147,23 @@ export function verifyToken(token) {
 
 export function ensureAdmin(username = 'freebird') {
   const existing = db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
-  if (existing) return { created: false, password: null };
+  const seeded = envPasswordHash();
+  if (existing) {
+    // 部署环境提供的哈希为准，兼容早期用其他方式初始化过的数据库。
+    if (seeded) {
+      db.prepare('UPDATE admins SET password_hash = ?, salt = ? WHERE id = ?')
+        .run(seeded.hash, seeded.salt, existing.id);
+    }
+    return { created: false, password: null };
+  }
+
+  if (seeded) {
+    db.prepare('INSERT INTO admins (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)')
+      .run(username, seeded.hash, seeded.salt, now());
+    return { created: true, password: null, generated: false, username };
+  }
 
   let password = process.env.ADMIN_PASSWORD;
-  if (!password && passwordDigest) password = `sha256:${passwordDigest}`;
   let generated = false;
   if (!password) {
     password = crypto.randomBytes(9).toString('base64url');

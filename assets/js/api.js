@@ -12,6 +12,8 @@ async function request(path, options = {}) {
   try {
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
     const adminToken = sessionStorage.getItem('freebird_admin_token');
+    // 查询串会进入代理日志，令牌改走自定义头；写请求仍附带请求体令牌作为网关兼容回退。
+    if (adminToken) headers['X-Access-Token'] = adminToken;
     if (options.body && typeof options.body !== 'string') {
       if (adminToken) options.body = { ...options.body, access_token: adminToken };
       headers['Content-Type'] = 'application/json';
@@ -19,8 +21,6 @@ async function request(path, options = {}) {
     }
     const target = new URL(BASE + path, location.href);
     if (SHARECODE) target.searchParams.set('sharecode', SHARECODE);
-    // 发布平台的反向代理可能剥离 Authorization 头，因此同时在查询参数中携带令牌。
-    if (adminToken) target.searchParams.set('access_token', adminToken);
     const res = await fetch(target.toString(), { ...options, headers, signal: controller.signal });
     const text = await res.text();
     let data;

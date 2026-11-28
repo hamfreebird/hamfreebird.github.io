@@ -11,6 +11,8 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "seed": "node server/seed.js",
-    "check": "node server/selftest.js"
+    "check": "node server/selftest.js",
+    "hash-password": "node server/hash-password.js",
+    "build:static": "node scripts/build-static.mjs"
   }
 }

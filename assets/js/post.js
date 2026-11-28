@@ -27,6 +27,29 @@ function commentHtml(c) {
   const p = data.post;
   const cover = ['dawn', 'night', 'code', 'autumn'].includes(p.cover) ? p.cover : 'default';
   document.title = `${p.title} · freebird的自留地`;
+  const description = (p.excerpt || p.title || '').slice(0, 160);
+  const pageUrl = `${(window.FREEBIRD_CONFIG?.PAGES || location.origin).replace(/\/$/, '')}/post.html?slug=${encodeURIComponent(p.slug)}`;
+  const setMeta = (selector, attribute, value) => {
+    let el = document.head.querySelector(selector);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attribute.startsWith('og:') ? 'property' : 'name', attribute);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', value);
+  };
+  setMeta('meta[name="description"]', 'description', description);
+  setMeta('meta[property="og:title"]', 'og:title', p.title);
+  setMeta('meta[property="og:description"]', 'og:description', description);
+  setMeta('meta[property="og:type"]', 'og:type', 'article');
+  setMeta('meta[property="og:url"]', 'og:url', pageUrl);
+  let canonical = document.head.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    document.head.appendChild(canonical);
+  }
+  canonical.href = pageUrl;
   root.innerHTML = `
     <header class="article-head reveal">
       <a class="eyebrow" href="archive.html">← 返回归档</a>

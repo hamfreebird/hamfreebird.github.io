@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {
   db, now, publicPost, safeParseArray, getSettings,
-  verifyPassword, verifyAdminPassword, verifyToken, signToken, setAdminPassword, transaction
+  verifyPassword, verifyToken, signToken, setAdminPassword, transaction
 } from './db.js';
 import { importDataset, writeSnapshot, readLatestSnapshot, snapshotInfo, scheduleSnapshot } from './snapshot.js';
 import { looksLikeHtml } from '../assets/js/markdown.js';
@@ -43,13 +43,14 @@ function readBody(req) {
   });
 }
 
-function authUser(req, url) {
+function authUser(req) {
   const header = req.headers.authorization || '';
-  const fromHeader = header.startsWith('Bearer ') ? header.slice(7) : '';
-  const fromQuery = url?.searchParams.get('access_token') || '';
+  const fromAuthorization = header.startsWith('Bearer ') ? header.slice(7) : '';
+  // 查询串会进入代理与访问日志，令牌不再通过 URL 传递。
+  const fromCustomHeader = String(req.headers['x-access-token'] || '').trim();
   const fromBody = req._parsedBody?.access_token || '';
-  // 发布网关可能注入额外的 Authorization 头，优先使用请求体/查询参数中明确携带的令牌。
-  const token = fromBody || fromQuery || fromHeader;
+  // 网关可能剥离或改写 Authorization，因此优先采用显式自定义头与请求体令牌。
+  const token = fromCustomHeader || fromBody || fromAuthorization;
   const data = verifyToken(token);
   if (!data) return null;
   const admin = db.prepare('SELECT id, username FROM admins WHERE username = ?').get(data.sub);
@@ -66,8 +67,22 @@ function rateLimited(key, max, windowMs) {
   return false;
 }
 
+// 部署在反向代理之后时，socket 地址是网关内网 IP，直接用它会导致全站共用限流桶。
+// 仅当显式设置 TRUST_PROXY 时才采信转发头；默认关闭，避免直连场景被伪造 XFF 绕过限流。
+// TRUST_PROXY_HOPS 表示右侧受信代理层数（默认 1，即取 XFF 最后一项：网关追加的真实地址）。
 function clientIp(req) {
-  return req.socket.remoteAddress || 'unknown';
+  const socketIp = req.socket.remoteAddress || 'unknown';
+  const trust = String(process.env.TRUST_PROXY || '').trim().toLowerCase();
+  if (!trust || trust === '0' || trust === 'false') return socketIp;
+
+  const chain = String(req.headers['x-forwarded-for'] || '')
+    .split(',').map((part) => part.trim()).filter(Boolean);
+  if (chain.length) {
+    const hops = Math.max(1, Number(process.env.TRUST_PROXY_HOPS) || 1);
+    return chain[Math.max(0, chain.length - hops)] || socketIp;
+  }
+  const realIp = String(req.headers['x-real-ip'] || '').trim();
+  return realIp || socketIp;
 }
 
 function ipHash(req) {
@@ -265,23 +280,11 @@ export async function handleApi(req, res, url) {
       return json(res, 200, { ok: true, service: 'freebird-blog-api', time: now(), version: '2026-11-20-token-body' }), true;
     }
 
-    if (pathname === '/api/auth/diagnose' && req.method === 'POST') {
-      const body = await readBody(req);
-      const token = body.access_token || '';
-      return json(res, 200, {
-        bodyKeys: Object.keys(body),
-        tokenLength: token.length,
-        tokenVerified: Boolean(verifyToken(token)),
-        headerLength: (req.headers.authorization || '').length,
-        queryLength: (url.searchParams.get('access_token') || '').length
-      }), true;
-    }
-
     if (pathname === '/api/auth/login' && req.method === 'POST') {
       if (rateLimited(`login:${clientIp(req)}`, 10, 15 * 60 * 1000)) return fail(res, 429, '尝试次数过多，请稍后再试'), true;
       const body = await readBody(req);
       const row = db.prepare('SELECT * FROM admins WHERE username = ?').get(str(body.username, '', 60));
-      if (!row || !verifyAdminPassword(body.password || '', row.salt, row.password_hash)) {
+      if (!row || !verifyPassword(body.password || '', row.salt, row.password_hash)) {
         return fail(res, 401, '用户名或密码不正确'), true;
       }
       return json(res, 200, {
@@ -293,11 +296,11 @@ export async function handleApi(req, res, url) {
       try { await readBody(req); } catch { /* 后续路由会返回具体错误 */ }
     }
 
-    const isAdmin = Boolean(authUser(req, url));
+    const isAdmin = Boolean(authUser(req));
 
     if (pathname === '/api/auth/me' && req.method === 'GET') {
       if (!isAdmin) return fail(res, 401, '请先登录'), true;
-      return json(res, 200, { ok: true, user: authUser(req, url) }), true;
+      return json(res, 200, { ok: true, user: authUser(req) }), true;
     }
 
     if (pathname === '/api/posts' && req.method === 'GET') {
@@ -430,7 +433,7 @@ export async function handleApi(req, res, url) {
       const body = await readBody(req);
       const next = str(body.password, '', 200);
       if (next.length < 8) return fail(res, 400, '新密码至少 8 位'), true;
-      const me = authUser(req, url);
+      const me = authUser(req);
       setAdminPassword(me.username, next);
       return json(res, 200, { ok: true, message: '密码已更新，请重新登录' }), true;
     }

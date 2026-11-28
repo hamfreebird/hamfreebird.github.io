@@ -5,17 +5,66 @@ const attr = (value = '') => String(value).replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[c]);
 
+// 白名单消毒：只保留排版需要的标签与属性，避免黑名单漏掉 svg/xlink、meta refresh、
+// 实体或控制字符变形的 javascript: 等注入路径。
+const ALLOWED_TAGS = {
+  p: ['class'], span: ['class'], div: ['class'],
+  br: [], hr: [], h1: [], h2: [], h3: [], h4: [], h5: [], h6: [],
+  strong: [], b: [], em: [], i: [], u: [], s: [], del: [], ins: [], mark: [], small: [], sup: [], sub: [],
+  code: ['class'], pre: ['class'], blockquote: [], ul: [], ol: ['start'], li: [],
+  a: ['href', 'title', 'target', 'rel'], img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+  figure: [], figcaption: [], table: [], thead: [], tbody: [], tfoot: [], tr: [], caption: [],
+  th: ['colspan', 'rowspan', 'scope', 'style'], td: ['colspan', 'rowspan', 'style'],
+  input: ['type', 'checked', 'disabled']
+};
+// 这些标签连同内容一起删除；其余未知标签仅解包，保留文字。
+const DROP_WITH_CONTENT = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'template', 'noscript', 'svg', 'math']);
+
+function safeUrl(value, { image = false } = {}) {
+  const raw = String(value || '').replace(/[\u0000-\u0020\u00a0\u00ad\u2000-\u200f\u2028\u2029]/g, '');
+  if (!raw) return '';
+  if (image) return /^(https?:|\/|\.\/|\.\.\/)/i.test(raw) ? String(value).trim() : '';
+  return /^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i.test(raw) ? String(value).trim() : '';
+}
+
 export function cleanHtml(html = '') {
   const tpl = document.createElement('template');
   tpl.innerHTML = String(html);
-  tpl.content.querySelectorAll('script, iframe, object, embed, style, link').forEach((el) => el.remove());
-  tpl.content.querySelectorAll('*').forEach((el) => {
-    [...el.attributes].forEach((a) => {
-      if (/^on/i.test(a.name) || (/^(href|src)$/i.test(a.name) && /^\s*javascript:/i.test(a.value))) {
-        el.removeAttribute(a.name);
+
+  const walk = (node) => {
+    for (const child of [...node.childNodes]) {
+      if (child.nodeType === 8) { child.remove(); continue; }
+      if (child.nodeType !== 1) continue;
+      const tag = child.tagName.toLowerCase();
+      if (!ALLOWED_TAGS[tag]) {
+        if (DROP_WITH_CONTENT.has(tag)) { child.remove(); continue; }
+        walk(child);
+        child.replaceWith(...child.childNodes);
+        continue;
       }
-    });
-  });
+      const allowed = ALLOWED_TAGS[tag];
+      for (const attribute of [...child.attributes]) {
+        const name = attribute.name.toLowerCase();
+        if (!allowed.includes(name)) { child.removeAttribute(attribute.name); continue; }
+        if (name === 'href' || name === 'src') {
+          const url = safeUrl(attribute.value, { image: name === 'src' });
+          if (url) child.setAttribute(name, url); else child.removeAttribute(name);
+        }
+        if (name === 'class' && !/^(sign|lead|language-[\w+#.-]+)$/.test(attribute.value)) {
+          child.removeAttribute('class');
+        }
+        if (name === 'style' && !/^text-align:\s*(left|right|center);?$/i.test(attribute.value.trim())) {
+          child.removeAttribute('style');
+        }
+      }
+      if (tag === 'a' && child.getAttribute('target') === '_blank') {
+        child.setAttribute('rel', 'noopener noreferrer');
+      }
+      walk(child);
+    }
+  };
+
+  walk(tpl.content);
   return tpl.innerHTML;
 }
 

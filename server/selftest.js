@@ -191,6 +191,38 @@ await check('正文 Base64 传输与脚本片段保留', async () => {
   assert(created.body.post.content === raw, 'Base64 正文未被原样还原');
 });
 
+await check('鉴权通道与代理 IP 限流', async () => {
+  const headers = { 'Content-Type': 'application/json' };
+  const viaHeader = await json('/api/backup', { headers: { 'X-Access-Token': token } });
+  assert(viaHeader.status === 200, '自定义头令牌未被接受');
+  const viaQuery = await json(`/api/backup?access_token=${encodeURIComponent(token)}`);
+  assert(viaQuery.status === 401, '查询串令牌仍可用于鉴权');
+  const diagnose = await json('/api/auth/diagnose', { method: 'POST', headers, body: '{}' });
+  assert(diagnose.status === 404, '诊断端点仍然开放');
+
+  process.env.TRUST_PROXY = '1';
+  const list = await json('/api/posts');
+  const postId = list.body.items[0]?.id;
+  assert(postId, '缺少可留言的测试文章');
+  const statuses = [];
+  for (let i = 0; i < 6; i += 1) {
+    const result = await json('/api/comments', {
+      method: 'POST',
+      headers: { ...headers, 'X-Forwarded-For': '203.0.113.77' },
+      body: JSON.stringify({ postId, author: '限流测试', content: '测试留言内容' })
+    });
+    statuses.push(result.status);
+  }
+  assert(statuses.at(-1) === 429, `同一访客未被限流：${statuses.join(',')}`);
+  const other = await json('/api/comments', {
+    method: 'POST',
+    headers: { ...headers, 'X-Forwarded-For': '198.51.100.23' },
+    body: JSON.stringify({ postId, author: '另一访客', content: '另一条测试留言' })
+  });
+  assert(other.status === 202, `不同访客共用限流桶：${other.status}`);
+  delete process.env.TRUST_PROXY;
+});
+
 await new Promise((resolve) => server.close(resolve));
 closeDb();
 try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* 临时文件可稍后清理 */ }
