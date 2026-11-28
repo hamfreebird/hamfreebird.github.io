@@ -200,6 +200,15 @@ await check('鉴权通道与代理 IP 限流', async () => {
   const diagnose = await json('/api/auth/diagnose', { method: 'POST', headers, body: '{}' });
   assert(diagnose.status === 404, '诊断端点仍然开放');
 
+  const created = await json('/api/posts', {
+    method: 'POST', headers,
+    body: JSON.stringify({ access_token: token, title: '删除通道测试', slug: 'delete-channel', content: 'x', status: 'draft' })
+  });
+  const removed = await json(`/api/posts/${created.body.post.id}`, {
+    method: 'DELETE', headers, body: JSON.stringify({ access_token: token })
+  });
+  assert(removed.status === 200, `请求体令牌删除失败：${removed.status}`);
+
   process.env.TRUST_PROXY = '1';
   const list = await json('/api/posts');
   const postId = list.body.items[0]?.id;

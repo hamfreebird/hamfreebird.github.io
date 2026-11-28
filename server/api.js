@@ -292,7 +292,7 @@ export async function handleApi(req, res, url) {
       }), true;
     }
 
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && pathname !== '/api/auth/login') {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && pathname !== '/api/auth/login') {
       try { await readBody(req); } catch { /* 后续路由会返回具体错误 */ }
     }
 
