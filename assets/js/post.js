@@ -50,6 +50,25 @@ function commentHtml(c) {
     document.head.appendChild(canonical);
   }
   canonical.href = pageUrl;
+
+  // 结构化数据：便于搜索引擎理解文章元信息（页面正文由前端渲染）。
+  let jsonLd = document.getElementById('postJsonLd');
+  if (!jsonLd) {
+    jsonLd = document.createElement('script');
+    jsonLd.type = 'application/ld+json';
+    jsonLd.id = 'postJsonLd';
+    document.head.appendChild(jsonLd);
+  }
+  jsonLd.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: p.title,
+    description,
+    datePublished: p.publishedAt || undefined,
+    dateModified: p.updatedAt || p.publishedAt || undefined,
+    author: { '@type': 'Person', name: 'freebird' },
+    mainEntityOfPage: pageUrl
+  });
   root.innerHTML = `
     <header class="article-head reveal">
       <a class="eyebrow" href="archive.html">← 返回归档</a>
