@@ -41,7 +41,7 @@ ADMIN_PASSWORD='your-strong-password' npm start
 
 - 未设置 `ADMIN_PASSWORD` 时，首次启动会生成一个随机密码并打印在终端，请立即修改。
 - 管理后台：<http://localhost:8787/admin.html>，默认用户名 `freebird`。
-- 其他命令：`npm run check`（端到端自检，使用临时数据目录）、`npm run seed`（从 `content/posts.json` 补充种子文章）。
+- 其他命令：`npm run check`（端到端自检，使用临时数据目录）、`npm run seed`（从 `content/posts.json` 补充种子文章）、`npm run build:static`（拉取已发布文章生成快照与 RSS/sitemap，Pages 工作流会自动执行）、`npm run hash-password -- '密码'`（生成部署用口令哈希）。
 
 ## 环境变量
 

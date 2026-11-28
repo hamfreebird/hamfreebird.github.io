@@ -142,7 +142,7 @@ export const api = {
     return request(`/api/posts/${id}`, { method: 'PUT', body: encodePostBody(data), headers: { Authorization: `Bearer ${token}` } });
   },
   async deletePost(id, token) {
-    return request(`/api/posts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    return request(`/api/posts/${id}`, { method: 'DELETE', body: {}, headers: { Authorization: `Bearer ${token}` } });
   },
   async recordView(id) {
     try { await request(`/api/posts/${id}/view`, { method: 'POST' }); } catch { /* 阅读数非关键路径 */ }
@@ -157,7 +157,7 @@ export const api = {
     return request(`/api/comments/${id}`, { method: 'PATCH', body: { status }, headers: { Authorization: `Bearer ${token}` } });
   },
   async deleteComment(id, token) {
-    return request(`/api/comments/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    return request(`/api/comments/${id}`, { method: 'DELETE', body: {}, headers: { Authorization: `Bearer ${token}` } });
   },
   async subscribe(email) {
     return request('/api/subscribe', { method: 'POST', body: { email } });
